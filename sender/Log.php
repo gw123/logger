@@ -9,6 +9,8 @@ class  Log{
     // 是否禁止调试
     public static   $forbidden = false;
 
+    public  static  $error = null;
+
     /***
      * @param string $serverURL  调试服务器接受调试信息地址 ,
      * 如 http://www.xytschool.com:8080
@@ -48,7 +50,7 @@ class  Log{
             $content = json_encode($content);
         }
         $frame = ['token'=>$token,'type'=>$type,  "group"=>$group , 'data'=>$content, 'contentType' =>$contentType] ;
-        var_dump($frame);
+
        return self::_send(Log::$serverURL,"POST",$frame);
     }
 
@@ -82,7 +84,8 @@ class  Log{
                 if(!$data)
                 {
                     $info = curl_getinfo($ch);
-                    var_dump($info); exit();
+                    Log::$error = $info;
+                    return false;
                 }
                 if($returnCookie && $data) {
                     $cookie = false;
@@ -105,9 +108,10 @@ class  Log{
 }
 
 //定义数据格式  类型  消息组
-//$msgType =[ 'info' , 'waring' , 'error'  ];
-//{"type":"info","group":"","contentType":"json","data":{"name":"12313"}}
-#$frame = ['type'=>'info', "group"=>'info' , 'data'=>'' , 'contentType' =>"text"] ;
-#Log::setServer('http://www.xytschool.com:8080);
-#Log::info('123123','a');
+//Log::setServer('http://xytschool.com:8080');
+//log::setToken('gw123');
+//
+//if(!Log::waring('hello word') ) { var_dump( Log::$error ); };
+//log::error('程序出错');
+//echo Log::info('通知:...' , 'group1');
 
