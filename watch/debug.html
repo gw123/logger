@@ -1,0 +1,311 @@
+    <head>
+        <title> 网页调试器 </title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="keywords" content="在线调试器,nodejs"/>
+		<meta name="description" content="一款在线调试工具,访问 http://xytschool.com 获取更多信息" />
+		<script type="text/javascript" src="./jquery-2.1.4.js"></script>
+    <head>
+    <style>
+        body{ font:14px/20px arial,sans-serif;  color: #3f903f;  background-color: #6e6e6e; }
+        *{margin: 0px; padding: 0px; box-sizing: border-box}
+        .container{ min-width: 600px; margin: 0 auto; background-color: #e0ede0; height: 600px;}
+        .box{ float: left; box-sizing: border-box; border: groove 2px silver; overflow: hidden;}
+        .row-100{width: 100%;} .row-50{width: 50%;}
+        .h-50{height: 50%}    .h-100{height: 100%}
+
+        .nav{width: 100%; padding: 5px 10px;  border-bottom: solid 1px #606060}
+        .nav ul li { list-style: none; float: left;  padding:2px 8px; min-width: 40px; font-weight: 700;text-align: center}
+         li:hover{cursor:pointer}
+         li a{ color: #00AA00; text-decoration: none;}
+        .current { border-bottom: groove 1px #ff0000 }
+        .msg_container{width: 100%; height:85%;padding: 10px; overflow-y:auto; margin-bottom: 10px;}
+         p.info{color: #00aa00}
+         p.waring{color: #ff7800}
+         p.error{color: #ff0000}
+        .header{float: left; font-family: sans-serif; font-size: 1.2em;margin-right: 20px;}
+
+        /** 设置窗口*/
+        .setting{
+            position: absolute;  top:12%;  left: 50%;
+            margin-left: -250px;  color: #0a2b1d;
+            width: 500px;          height: 260px;  padding: 10px 50px;
+            border: 2px solid #000000;  background-color: #41AE65;
+        }
+        .setting .close{ position: absolute; top:5px; right: 20px; font-size: 0.8em ; cursor: pointer;}
+        .setting .close:hover{ font-weight: 700}
+        .setting .title{
+            width: 100%; text-align: center; font-size: 18px; font-weight: 800; margin-bottom: 30px;
+        }
+        .setting .item{ width: 100%; margin-bottom: 20px; }
+        .setting .item input{width: 240px;margin-left: 20px;}
+        .setting .item #connect { width: 40%; margin-left: 30%}
+        .setting  #ws_status{ font-size: 10px;color: #aa298b
+        }
+    </style>
+<body>
+    <div id='setting' class="setting" style="display: none">
+        <div class="close" id="close_setting">X</div>
+        <div class="title"> 设 置 </div>
+        <div class="item"> <span>服务器地址:</span>
+            <input type="text" id="serverIp" placeholder="http://xytschool.com">   </div>
+        <div class="item"> <span>服务器端口:</span>
+            <input type="text" id="serverPort" placeholder="4000"> </div>
+        <div class="item"> <span>输入令牌码:</span>
+            <input type="text" id="token" placeholder="字符数字组合长度不小于8"> </div>
+        <div class="item"> <input type="button" id="connect" value="提交" ></div>
+        <div id="ws_status"> 未连接 </div>
+    </div>
+<div class="container  _debug">
+
+      <div class="box row-100 h-50">
+          <div class="nav">
+              <div class="header"> 输出信息: </div>
+              <ul>
+                  <li onclick="showMsgType('info')">消息</li>   <li onclick="showMsgType('waring')">警告</li>
+                  <li onclick="showMsgType('error')">错误</li>  <li onclick="showMsgType('all')">所有</li>
+                  <li style="margin-left: 100px;"> <a  target="_blank" href="/js/lib/jsonFormater/json.html">json解析工具</a></li>
+              </ul>
+
+              <div class="input" style="float: right">
+                  <input id="btn_open_setting" type="button" value="设置">
+              </div>
+              <div style="clear: both"></div>
+          </div>
+
+          <div class="msg_container"> </div>
+      </div>
+
+      <div class="box row-50  h-50">
+          <div class="nav">
+              <div class="header"> 数据A: </div>
+              <ul class="group"> <li class="li" onclick="showGroup(this.innerText ,this)">类型</li></ul>
+              <div style="clear: both"></div>
+          </div>
+           <div class="msg_container"> </div>
+      </div>
+
+      <div class="box row-50  h-50">
+          <div class="nav">
+              <div class="header"> 数据B:  </div>
+              <ul  class="group"> <li class="li"  onclick="showGroup(this.innerText ,this)">类型</li></ul>
+              <div style="clear: both"></div>
+          </div>
+           <div class="msg_container"> </div>
+      </div>
+</div>
+</body>
+
+<script type="text/javascript" src='/js/jquery-2.1.4.js'></script>
+<script type="text/javascript">
+var height = document.body.clientHeight;
+$('.container').height(height);
+window.onresize = function () {
+    var height = document.body.clientHeight;
+    $('.container').height(height);
+};
+
+String.prototype.format= function(){
+    var args = arguments;
+    return this.replace(/\{(\d+)\}/g,function(s,i){
+        return args[i];
+    });
+}
+//消息组
+var chatGroup  = [];
+window.token = '';
+function  Chat(server,callback) {
+    this.server = server;
+    this.isInit = false;
+    this.ws = null;
+    //初始化 -- 握手成功后发送令牌数据
+    this.connect = function () {
+        this.ws = new WebSocket(this.server);
+        _this =this;
+        this.ws.onopen = function(){
+             console.log("握手成功");
+             $('#ws_status').text('握手成功');
+            _this.isInit = true;
+            _this.send(window.token , 'token');
+        }
+
+        this.ws.onmessage =this.onmessage;
+
+        this.ws.onerror = function(response ,errno){
+            console.log(response ,errno);
+            $('#ws_status').text('连接异常 ...请重新连接');
+        }
+    }
+
+    /****
+     *  发送消息
+     * @param centent  消息内容
+     * @param type     消息类型 警告 错误 token。。。
+     * @param group    消息分组  可进修对比
+     */
+    this.send= function (centent , type , group) {
+        var  data = {};
+        type    ? data.type    = type : data.type = 'info';
+        group ? data.group = type : data.group ='';
+        if(typeof centent =="array"||typeof centent == 'object')
+            data.contentType = 'json';
+        else
+            data.contentType = 'text';
+        data.data = centent;
+        this.ws.send( JSON.stringify( data) );
+    }
+
+    //接收消息
+    this.onmessage = function (event) {
+        //console.log("message:" + event.data);
+        callback(event.data);
+    }
+}
+
+/***
+ *  有新的消息到来的函数 ..
+ */
+function  onMessage(msg)
+{
+    var  frame = JSON.parse(msg);
+    console.log(frame);
+    if(frame.type=='sys')
+    {
+       if(frame.msg == '认证成功')
+       {
+           $('#ws_status').text( '认证成功..' );
+           setTimeout( function () { $('#setting').hide(400);} ,1000);
+       }else{
+           $('#ws_status').text( frame.msg );
+       }
+        return;
+    }
+
+    var  data = frame.data ? frame.data : '';
+    var  time = new Date();
+    var  timestr = time.getHours()+"-"+time.getMinutes()+"-"+time.getSeconds();
+    data = timestr +"  :  "+data;
+    frame.data = data;
+    var  str = '';
+
+    if( chatGroup[frame.group] )
+    {
+        chatGroup[frame.group].push(frame);
+    }else
+    {
+        chatGroup[frame.group] = [];
+        chatGroup[frame.group].push(frame);
+        var wrap= $('<li onclick="showGroup(this.innerText)">'+frame.group+'</li>').click(chooseGroup);
+        $('.group').append(wrap);
+    }
+
+    switch (frame.type)
+    {
+        case 'info'   : str= "<p class='info'  group='"+frame.group+"'>"+data+"</p>"  ;  break;
+        case 'error'  : str= "<p class='error' group='"+frame.group+"'>"+data+"</p>"  ;  break;
+        case 'waring' : str=  "<p class='waring' group='"+frame.group+"'>"+data+"</p>"  ;  break;
+        default:        str =  "<p class='info'  group='"+frame.group+"'>"+data+"</p>"  ;  break;
+    }
+    //console.log( str );
+
+    var debug1 = $('._debug .msg_container').first().append( str  );
+    var  containers = $('.msg_container');// console.log(containers);
+    for(var j=0; j<containers.length ; j++)
+    {
+        var temp = containers[j];
+        //console.log(temp.scrollHeight);
+        //console.log(temp.offsetHeight);
+        $(temp).scrollTop( temp.scrollHeight-temp.offsetHeight +80);
+    }
+
+    var arr= $('.group .current');
+    if(arr.length==0)  return;
+
+    for (var index in arr)
+    {
+        var  groupType =  arr[index].innerText;
+        if(groupType==frame.group)
+        {
+            var container = $(arr[index]).parent().parent().parent().find('.msg_container');
+            container.append(str);  return;
+        }
+    }
+
+}
+// 实例化
+
+
+//  打开设置
+$('#btn_open_setting').click(function(){
+   // var val =  $(this).parent().children().first().val();chat.send(val ,'waring');
+    $('#setting').show(400);
+});
+//  关闭设置
+$('#close_setting').click(function () {
+    $('#setting').hide(300);
+})
+// 连接
+$('#connect').click(function () {
+    window.token = $('#token').val();
+    var  host = $('#serverIp').val();
+    var  port = $('#serverPort').val();
+    host = host?host:window.location.host;
+    var  ServerURL= 'ws://'+host+':'+port;
+    console.log(ServerURL);
+    var  chat = new Chat ( ServerURL , onMessage );
+    chat.connect();
+})
+
+//筛选指定的消息
+function  showMsgType(type) {
+    if(type=='all')  $("p").show();
+
+    switch (type) {
+        case 'info' :
+            $("p.waring").hide();$("p.info").show();$("p.error").hide();
+            break;
+        case 'error' :
+            $("p.waring").hide();$("p.info").hide();$("p.error").show();
+            break;
+        case 'waring' :
+            $("p.waring").show();$("p.info").hide();$("p.error").hide();
+            break;
+    }
+}
+
+function chooseGroup() {
+    // console.log(this);
+    var group = this.innerText;
+    //console.log(group);
+    //console.log(chatGroup[group]);
+    $(this).parent().children().removeClass('current');
+    $(this).addClass('current');
+
+    var list = chatGroup[group];
+    var msg_container = $(this).parent().parent().parent().find('.msg_container');
+    msg_container.empty();
+
+    for (var  i in list)
+    {
+        console.log(list[i])
+        msg_container.append('<p class="'+list[i].type+'"  group="'+group+'" >'+list[i].data+'</p>');
+    }
+};
+//
+function showGroup(group,ele) {
+    return true;
+//        console.log(group);
+//        console.log(chatGroup[group]);
+//        var list = chatGroup[group];
+//        var msg_container = $('.msg_container');
+//        msg_container.empty();
+//        console.log(ele)
+//        for (var  i in list)
+//        {
+//            console.log(list[i])
+//            msg_container.append('<p class="'+list[i].type+'"  group="'+group+'" >'+list[i].data+'</p>');
+//        }
+}
+
+
+</script>

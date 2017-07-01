@@ -1,0 +1,19 @@
+{
+  "name": "logger",
+  "version": "1.0.0",
+  "description": "在线实时调试工具",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "ws": "^2.2.3"
+  },
+  "keywords": [
+    "debug",
+    "调试",
+    "xytschool"
+  ],
+  "author": "gw123",
+  "license": "ISC"
+}
