@@ -1,5 +1,5 @@
 # logger
-web 实时在线工具
+web 实时在线工具 , 支持在电脑浏览器  , 手机端查看 可以在手机上看哦 ,让你的手机变成你的调试法宝 .
 
  http://xytschool.com/index/article-detail?id=252
  
