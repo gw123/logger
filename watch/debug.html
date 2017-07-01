@@ -3,6 +3,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="keywords" content="在线调试器,nodejs"/>
+        <meta name="keywords" content="web开发技能学习"/>
 		<meta name="description" content="一款在线调试工具,访问 http://xytschool.com 获取更多信息" />
 		<script type="text/javascript" src="./jquery-2.1.4.js"></script>
     <head>
@@ -15,7 +16,7 @@
         .h-50{height: 50%}    .h-100{height: 100%}
 
         .nav{width: 100%; padding: 5px 10px;  border-bottom: solid 1px #606060}
-        .nav ul li { list-style: none; float: left;  padding:2px 8px; min-width: 40px; font-weight: 700;text-align: center}
+        .nav ul li { list-style: none; float: left;  padding:2px 4px; min-width: 30px; font-weight: 700;text-align: center}
          li:hover{cursor:pointer}
          li a{ color: #00AA00; text-decoration: none;}
         .current { border-bottom: groove 1px #ff0000 }
@@ -29,7 +30,7 @@
         .setting{
             position: absolute;  top:12%;  left: 50%;
             margin-left: -250px;  color: #0a2b1d;
-            width: 500px;          height: 260px;  padding: 10px 50px;
+            width: 500px;          height: 320px;  padding: 10px 50px;
             border: 2px solid #000000;  background-color: #41AE65;
         }
         .setting .close{ position: absolute; top:5px; right: 20px; font-size: 0.8em ; cursor: pointer;}
@@ -38,7 +39,7 @@
             width: 100%; text-align: center; font-size: 18px; font-weight: 800; margin-bottom: 30px;
         }
         .setting .item{ width: 100%; margin-bottom: 20px; }
-        .setting .item input{width: 240px;margin-left: 20px;}
+        .setting .item input[type='text']{width: 240px;margin-left: 20px;}
         .setting .item #connect { width: 40%; margin-left: 30%}
         .setting  #ws_status{ font-size: 10px;color: #aa298b
         }
@@ -48,26 +49,31 @@
         <div class="close" id="close_setting">X</div>
         <div class="title"> 设 置 </div>
         <div class="item"> <span>服务器地址:</span>
-            <input type="text" id="serverIp" placeholder="http://xytschool.com">   </div>
+            <input type="text" id="serverIp" placeholder="ip/host 如:xytschool.com">   </div>
         <div class="item"> <span>服务器端口:</span>
             <input type="text" id="serverPort" placeholder="4000"> </div>
         <div class="item"> <span>输入令牌码:</span>
             <input type="text" id="token" placeholder="字符数字组合长度不小于8"> </div>
         <div class="item"> <input type="button" id="connect" value="提交" ></div>
+
+        <div class="item"> <span style="margin-right: 20px;">数据对比框:</span>
+           显示<input type="radio"   id="compare_show"  name="1" checked> &nbsp;
+           隐藏<input  type="radio"  id="compare_hide"  name="1">  </div>
         <div id="ws_status"> 未连接 </div>
     </div>
 <div class="container  _debug">
 
       <div class="box row-100 h-50">
           <div class="nav">
-              <div class="header"> 输出信息: </div>
+              <div class="header"> 消息类型: </div>
               <ul>
                   <li onclick="showMsgType('info')">消息</li>   <li onclick="showMsgType('waring')">警告</li>
                   <li onclick="showMsgType('error')">错误</li>  <li onclick="showMsgType('all')">所有</li>
-                  <li style="margin-left: 100px;"> <a  target="_blank" href="/js/lib/jsonFormater/json.html">json解析工具</a></li>
+                  <li style="margin-left: 40px;"> <a  target="_blank" href="/js/lib/jsonFormater/json.html">json解析工具</a></li>
               </ul>
 
-              <div class="input" style="float: right">
+              <div  style="float: right">
+                  <a href="http://xytschool.com" title="校园通">首页</a>
                   <input id="btn_open_setting" type="button" value="设置">
               </div>
               <div style="clear: both"></div>
@@ -111,6 +117,21 @@ String.prototype.format= function(){
         return args[i];
     });
 }
+function IsPC() {
+    var userAgentInfo = navigator.userAgent;
+    var Agents = ["Android", "iPhone",
+        "SymbianOS", "Windows Phone",
+        "iPad", "iPod"];
+    var flag = true;
+    for (var v = 0; v < Agents.length; v++) {
+        if (userAgentInfo.indexOf(Agents[v]) > 0) {
+            flag = false;
+            break;
+        }
+    }
+    return flag;
+}
+
 //消息组
 var chatGroup  = [];
 window.token = '';
@@ -244,6 +265,20 @@ $('#btn_open_setting').click(function(){
 $('#close_setting').click(function () {
     $('#setting').hide(300);
 })
+//
+$('#compare_show').click(function () {
+   $('.row-50').show();
+    $('.row-100').css( {height:'50%'});
+});
+$('#compare_hide').click(function () {
+    $('.row-50').hide();
+    $('.row-100').css( {height:'100%'});
+});
+// 在移动设备上默认隐藏对比栏
+if(!IsPC())
+{
+  $('#compare_hide').hide();
+}
 // 连接
 $('#connect').click(function () {
     window.token = $('#token').val();
