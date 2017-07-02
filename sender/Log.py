@@ -38,7 +38,7 @@ class  Log:
   def  error(self ,content ,group='all'):
        return self.send('error',content,group)
 
-#test
+#test 
 log = Log()
 
 res = log.waring('run at lin 43')
